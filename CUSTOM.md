@@ -11,6 +11,21 @@
 
 这些补丁仍属于个人测试构建，不等同于官方合并或设备实测通过。Wi-Fi AP 的区域、DFS、固件和信号因素仍可能影响扫描结果。
 
+## 本次已验证的镜像
+
+- [Actions 构建成功](https://github.com/Nayus/armada/actions/runs/38434804569)，耗时约 46 分钟；实际编译源码提交为 [`bb5bf25802a84db8460a75940d33571b0cf43f1a`](https://github.com/Nayus/armada/commit/bb5bf25802a84db8460a75940d33571b0cf43f1a)。后续文档提交不包含在此镜像的 revision 中。
+- 版本：`20261013.fd0ed0f-pr594-pr712.bb5bf25`，ARM64，内核及模块 `7.2.6`。
+- 标签：`ghcr.io/nayus/armada-custom:pr594-pr712-20261013-fd0ed0f`。
+- 建议部署的不可变引用：
+
+  ```text
+  ghcr.io/nayus/armada-custom@sha256:90ae3dc6ba26124001903d82eaeadb7e029025277f2e4bf777f7a3a73cd5770c
+  ```
+
+已在 CI 以外验证匿名访问 manifest 和 config，并核对 SHA256、ARM64 架构、bootc 标签、版本及源码 revision。官方基础镜像的 128 层全部保留，新增一层内核替换内容；镜像共 129 层，压缩总量约 5.91 GiB，现有基础层可复用。
+
+全部 200 个内核补丁成功应用；ath12k 实际编译链接、MCU 参数、FIT Elite DTB、initramfs 的九个必需路径检查通过。`bootc container lint` 为 13 项通过、1 项跳过、1 项运行时目录内容警告，未阻止构建。此镜像尚未在设备上启动测试，不是官方签名发布；设备没有被修改或重启。
+
 ## 可重复构建
 
 在 [Actions](https://github.com/Nayus/armada/actions) 中选择 **Build Armada bootc with PR594 and PR712**，在 `custom-pr594-pr712` 分支运行。
@@ -37,8 +52,8 @@ sudo ostree admin status
 # 只有确认当前 booted 部署序号为 0、且没有 staged 部署时：
 sudo ostree admin pin 0
 
-# 用成功运行 Summary 中的完整 immutable image 替换占位符。
-sudo bootc switch 'ghcr.io/nayus/armada-custom@sha256:<成功运行的digest>'
+# 本次已成功发布并验证可匿名拉取的双补丁镜像；以后构建须使用对应 Summary 的 digest。
+sudo bootc switch 'ghcr.io/nayus/armada-custom@sha256:90ae3dc6ba26124001903d82eaeadb7e029025277f2e4bf777f7a3a73cd5770c'
 sudo bootc status
 
 # 仅在 switch 成功且 staged 镜像正确时，执行正常完整重启。
