@@ -1,0 +1,48 @@
+# Keep the installed userspace; replace only its kernel, modules, DTBs and initramfs.
+ARG BASE_IMAGE
+ARG KERNEL_IMAGE=localhost/armada-kernel:build
+
+FROM ${KERNEL_IMAGE} AS patched-kernel
+
+FROM scratch AS initramfs-tools
+COPY build_files/55-generate-initramfs.sh /55-generate-initramfs.sh
+
+FROM ${BASE_IMAGE}
+ARG ARMADA_VERSION
+ARG ARMADA_REVISION
+
+LABEL org.opencontainers.image.title="Armada PR594 + PR712 test image" \
+      org.opencontainers.image.description="Official Armada userspace with WCN7860 range scan fixes and KONKR MCU suspend power-off" \
+      org.opencontainers.image.source="https://github.com/Nayus/armada" \
+      org.opencontainers.image.version="${ARMADA_VERSION}" \
+      org.opencontainers.image.revision="${ARMADA_REVISION}" \
+      containers.bootc="1" \
+      ostree.bootable="true"
+
+RUN --mount=type=bind,from=patched-kernel,source=/kernel,target=/patched-kernel,ro \
+    --mount=type=bind,from=initramfs-tools,source=/,target=/initramfs-tools,ro \
+    --mount=type=tmpfs,target=/var \
+    --mount=type=tmpfs,target=/tmp \
+    bash -euo pipefail -c '\
+      shopt -s nullglob; \
+      archives=(/patched-kernel/armada-kernel-*.tar.zst); \
+      test "${#archives[@]}" -eq 1; \
+      archive="${archives[0]}"; \
+      (cd /patched-kernel && sha256sum -c "$(basename "${archive}").sha256"); \
+      kver="${archive##*/armada-kernel-}"; kver="${kver%.tar.zst}"; \
+      test -d /usr/lib/modules; \
+      rm -rf /usr/lib/modules/*; \
+      tar --extract --zstd -f "${archive}" -C /usr; \
+      depmod -a "${kver}" -b /; \
+      mkdir -p /var/tmp; chmod 1777 /var/tmp; \
+      bash /initramfs-tools/55-generate-initramfs.sh; \
+      kernels=(/usr/lib/modules/*); test "${#kernels[@]}" -eq 1; \
+      test -s "/usr/lib/modules/${kver}/vmlinuz"; \
+      test -s "/usr/lib/modules/${kver}/initramfs.img"; \
+      test -s "/usr/lib/modules/${kver}/dtb/qcom/sm8750-konkr-pf-elite.dtb"; \
+      LC_ALL=C grep -a -q power_off_in_suspend "/usr/lib/modules/${kver}/vmlinuz"; \
+       test -s "$(modinfo -k "${kver}" -n ath12k)"; \
+      printf "%s\n" "${ARMADA_VERSION}" > /usr/lib/armada/version; \
+      printf "PR: https://github.com/armada-os/armada/pull/594\nPR: https://github.com/armada-os/armada/pull/712\nRevision: %s\n" \
+        "${ARMADA_REVISION}" >> "/usr/lib/modules/${kver}/.armada-source"; \
+      bootc container lint'

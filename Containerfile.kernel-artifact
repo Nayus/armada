@@ -1,0 +1,3 @@
+# Recreate the official out-kernel scratch stage from a provenance-checked CI artifact.
+FROM scratch
+COPY . /kernel/
