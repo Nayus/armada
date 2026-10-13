@@ -1,3 +1,9 @@
+> [!NOTE]
+> **Personal build: official Armada + PR #594 + PR #712.**
+> The `custom-pr594-pr712` branch adds WCN7860 Wi-Fi scan fixes and KONKR MCU suspend power-off while retaining the official base.
+> See the [custom build and deployment guide](CUSTOM.md) and [dual-patch Actions workflow](https://github.com/Nayus/armada/actions/workflows/build-patched-bootc.yml).
+> This is not an official release; CI checks do not replace hardware testing.
+
 <p align="center">
   <a href="https://armadaos.dev/">
     <picture>

@@ -1,0 +1,40 @@
+{
+  "official_main": "fd0ed0f1a285fbbccc5fa63969d4e176cb0ae4e6",
+  "kernel": "7.2.6",
+  "official_patch_count": 196,
+  "total_patches": 200,
+  "total_hunks": 1003,
+  "failed": 0,
+  "fuzz": 0,
+  "rebased_patches": [
+    {
+      "patch": "1021-wifi-ath12k-fix-single-pdev-frequency-ranges.patch",
+      "hunks": 2,
+      "sha256": "96c1094f2403d73304adfc79d6eee6e38f1b055175b40d4e5982c04a2d53d25c",
+      "offset": false,
+      "fuzz": false
+    },
+    {
+      "patch": "1022-wifi-ath12k-split-WCN7860-scans-by-firmware-ranges.patch",
+      "hunks": 17,
+      "sha256": "0227df4201f14c11f9ba2fb07e88572bc81ea7ac31c00d0f0979d634d070a251",
+      "offset": false,
+      "fuzz": false
+    },
+    {
+      "patch": "1023-wifi-ath12k-protect-TX-during-associated-range-scans.patch",
+      "hunks": 10,
+      "sha256": "9f8cc31a135ff55fa4a1535dc77d16e5416dd8efd00a390743db76cb80667c71",
+      "offset": false,
+      "fuzz": false
+    },
+    {
+      "patch": "pr712-0541.patch",
+      "hunks": 3,
+      "sha256": "8d87d14183c9083ac03e3fee13df4b11bd2f35989abc391eb1200888db4b7feb",
+      "offset": false,
+      "fuzz": false
+    }
+  ],
+  "note": "Full forward -F0 patch application, per-header dry-run verification, final ath12k files byte-equal to reviewed rebase. Not a compile or runtime test."
+}

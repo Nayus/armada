@@ -835,8 +835,8 @@ no equivalent submission was found, or a permanent URL to the upstream submissio
 - `patches/1022-wifi-ath12k-split-WCN7860-scans-by-firmware-ranges.patch`
   source: armada
   upstream: local
-  notes: Splits firmware scan requests only for WCN7860 hw2.0 with a single pdev, a single logical radio and valid DBS_OR_SBS PHY ranges. Tested on KONKR Pocket FIT Elite; retains the original channel order and one final completion.
+  notes: From Armada PR #594 by danyi. Splits firmware scan requests only for WCN7860 hw2.0 with a single pdev, a single logical radio and valid DBS_OR_SBS PHY ranges; retains the original channel order and one final completion. Original PR reports testing on KONKR Pocket FIT Elite. This fork rebases it onto fd0ed0f1 while preserving the official wiphy-delayed-work timeout fix, finish_queued lifecycle and an absolute full-request deadline. The rebased version has patch-application and source-review validation, not hardware validation.
 - `patches/1023-wifi-ath12k-protect-TX-during-associated-range-scans.patch`
   source: armada
   upstream: local
-  notes: Uses single-channel associated batches with TX drain, home-channel settle and communication windows, balanced queue ownership and a host timeout budget. Tested on KONKR Pocket FIT Elite; leaves other hardware modes on their original scan path.
+  notes: From Armada PR #594 by danyi. Uses single-channel associated batches with TX drain, home-channel settle and communication windows, balanced queue ownership and a host timeout budget; leaves other hardware modes on their original scan path. Original PR reports testing on KONKR Pocket FIT Elite. This fork checks the same absolute deadline after rest/drain waits; the rebased version still needs hardware validation.

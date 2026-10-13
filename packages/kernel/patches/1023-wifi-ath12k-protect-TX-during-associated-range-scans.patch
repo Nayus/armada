@@ -9,6 +9,10 @@ communication window.
 The host timeout covers the wait periods, and recovery owns the pause
 state.
 
+
+Rebased on the main-compatible range lifecycle. Check the same absolute
+deadline after associated home-channel rest and TX-drain waits.
+
 ---
 diff --git a/drivers/net/wireless/ath/ath12k/mac.c b/drivers/net/wireless/ath/ath12k/mac.c
 --- a/drivers/net/wireless/ath/ath12k/mac.c
@@ -21,7 +25,7 @@ diff --git a/drivers/net/wireless/ath/ath12k/mac.c b/drivers/net/wireless/ath/at
  
  #include "mac.h"
  #include "core.h"
-@@ -5357,11 +5358,55 @@
+@@ -5357,6 +5358,48 @@
  	return i;
  }
  
@@ -70,14 +74,16 @@ diff --git a/drivers/net/wireless/ath/ath12k/mac.c b/drivers/net/wireless/ath/at
  static void ath12k_mac_scan_range_free(struct ath12k *ar)
  {
  	struct ath12k_wmi_scan_req_arg *req;
- 
+@@ -5364,6 +5407,8 @@
  	lockdep_assert_wiphy(ath12k_ar_to_hw(ar)->wiphy);
+ 
+ 	wiphy_delayed_work_cancel(ath12k_ar_to_hw(ar)->wiphy, &ar->scan.timeout);
 +
 +	ath12k_mac_scan_range_tx_resume(ar);
  
  	spin_lock_bh(&ar->data_lock);
  	req = ar->scan.range_req;
-@@ -5394,6 +5439,10 @@
+@@ -5399,6 +5444,10 @@
  					arg->num_chan - next,
  					ar->scan.range_split_freq);
  
@@ -88,18 +94,27 @@ diff --git a/drivers/net/wireless/ath/ath12k/mac.c b/drivers/net/wireless/ath/at
  	part = kzalloc_flex(*part, chan_list, n);
  	if (!part)
  		return -ENOMEM;
-@@ -5405,7 +5454,17 @@
+@@ -5410,10 +5459,23 @@
  
  	ar->scan.range_next = next + n;
  
--	ret = ath12k_start_scan(ar, part);
+-	if (time_after_eq(jiffies, ar->scan.range_deadline))
+-		ret = -ETIMEDOUT;
+-	else
+-		ret = ath12k_start_scan(ar, part);
 +	/* Firmware needs home-channel rest between associated batches. */
 +	if (next && ar->scan.arvif->is_up)
 +		msleep(arg->min_rest_time);
 +
 +	ret = ath12k_mac_scan_range_tx_pause(ar);
 +	if (!ret) {
-+		ret = ath12k_start_scan(ar, part);
++		/* Rest/drain waits hold the wiphy lock, so the timeout work
++		 * cannot run here. Never start another batch after its deadline.
++		 */
++		if (time_after_eq(jiffies, ar->scan.range_deadline))
++			ret = -ETIMEDOUT;
++		else
++			ret = ath12k_start_scan(ar, part);
 +		if (ret)
 +			ath12k_mac_scan_range_tx_resume(ar);
 +	}
@@ -107,7 +122,7 @@ diff --git a/drivers/net/wireless/ath/ath12k/mac.c b/drivers/net/wireless/ath/at
  	kfree(part);
  
  	return ret;
-@@ -5563,6 +5622,8 @@
+@@ -5577,6 +5639,8 @@
  
  	lockdep_assert_wiphy(wiphy);
  
@@ -116,7 +131,7 @@ diff --git a/drivers/net/wireless/ath/ath12k/mac.c b/drivers/net/wireless/ath/at
  	arvif = ar->scan.arvif;
  
  	/* The scan vdev has already been deleted. This can occur when a
-@@ -5987,9 +6048,13 @@
+@@ -6008,9 +6072,13 @@
  	max_scan_time = arg->max_scan_time;
  	split_freq = ath12k_mac_scan_split_freq(ar);
  	if (split_freq &&
@@ -174,10 +189,10 @@ diff --git a/drivers/net/wireless/ath/ath12k/core.h b/drivers/net/wireless/ath/a
 --- a/drivers/net/wireless/ath/ath12k/core.h
 +++ b/drivers/net/wireless/ath/ath12k/core.h
 @@ -640,6 +640,7 @@
- 		struct delayed_work timeout;
+ 		struct wiphy_delayed_work timeout;
  		enum ath12k_scan_state state;
  		bool is_roc;
 +		bool range_tx_paused;
  		int roc_freq;
  		bool roc_notify;
- 		struct wiphy_work vdev_clean_wk;
+ 		bool finish_queued;
