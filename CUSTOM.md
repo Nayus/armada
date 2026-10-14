@@ -13,11 +13,24 @@
 
 ## 最新 main 基线重建
 
-已合并官方 `f1e136a2` 并保留两个 PR；官方基础镜像已通过 registry manifest/config 校验，revision 与源码对应，固定 digest 为 `sha256:7f58782ac02be17fc007123dc4ad5d1392f392cd470167dcb431289a9f3ae37e`。新版个人镜像正在重新构建，成功后会记录不可变引用。不能复用旧基线的内核产物。
+已合并官方 `f1e136a2` 并保留两个 PR；官方基础镜像已通过 registry manifest/config 校验，revision 与源码对应，固定 digest 为 `sha256:7f58782ac02be17fc007123dc4ad5d1392f392cd470167dcb431289a9f3ae37e`。
+
+- [新版 Actions 构建成功](https://github.com/Nayus/armada/actions/runs/38509101735)，耗时 8 分 13 秒；实际编译源码为 [`5af4dda683f41ecc70a3d08869a85ec62897ef53`](https://github.com/Nayus/armada/commit/5af4dda683f41ecc70a3d08869a85ec62897ef53)。利用 ccache 加速重新构建，没有复用旧内核产物。
+- 版本：`20261013.f1e136a-pr594-pr712.5af4dda`，ARM64，实际内核及模块 `7.2.6`。
+- 标签：`ghcr.io/nayus/armada-custom:pr594-pr712-20261014-f1e136a`。
+- 测试请使用此不可变引用：
+
+  ```text
+  ghcr.io/nayus/armada-custom@sha256:159b4b4b203c702761df960254aa9175f2c73c1711c304e700af92a2493602dc
+  ```
+
+已独立验证匿名拉取 manifest/config、两者 SHA256、架构、版本与源码 revision。官方的 128 个基础层 payload 完整保留，只新增一个约 106.81 MiB 的内核层；共 129 层，压缩总量约 6.34 GiB。CI 检查 ath12k / qcom-iris 模块、MCU 参数、FIT Elite DTB、Steam Remote Play 环境变量及 initramfs 九个启动必需路径均通过。`bootc container lint`：12 项通过、1 项跳过、2 项非致命警告（运行时目录内容、gamemode 组缺少 sysusers.d 条目）。镜像继承的 Fedora `ostree.linux` 标签不是实际 Armada 内核版本；以模块产物和启动后 `uname -r` 为准。
+
+这是未官方签名的个人测试镜像，尚未设备实测；本次未访问或操作设备（此前只读连接失败），未部署或重启。
 
 最新组合已在全新 Linux 7.2.6 源码上实际应用完整序列：202/202 补丁、1005/1005 hunk 成功，0 失败、0 fuzz；四个自定义补丁及两个新 Iris 补丁均无 offset。官方其他补丁的正常行号 offset 单独记录。详见 [CUSTOM-VALIDATION.json](CUSTOM-VALIDATION.json)，这不代表编译或设备实测通过。
 
-设备已更新官方 main 的用户，应等待此新版；下方历史镜像会把用户空间和内核换回旧基线，不能当作只安装两项驱动补丁。
+设备已更新官方 main 的用户，应测试上方新版，不要安装下方历史镜像。bootc 切换是替换整套系统与内核，不是只安装两项驱动补丁；此固定 digest 也不会自动跟随未来官方 main 更新。
 
 ## 旧基线镜像（历史记录，不建议覆盖新版官方系统）
 
@@ -60,8 +73,8 @@ sudo ostree admin status
 # 只有确认当前 booted 部署序号为 0、且没有 staged 部署时：
 sudo ostree admin pin 0
 
-# 新版构建成功后，使用其 Summary 中的不可变引用，不要使用旧基线 digest。
-sudo bootc switch 'ghcr.io/nayus/armada-custom@sha256:<新版成功运行的digest>'
+# 最新 main + 双 PR 的已验证不可变引用，不要替换成历史旧基线 digest。
+sudo bootc switch 'ghcr.io/nayus/armada-custom@sha256:159b4b4b203c702761df960254aa9175f2c73c1711c304e700af92a2493602dc'
 sudo bootc status
 
 # 仅在 switch 成功且 staged 镜像正确时，执行正常完整重启。
@@ -74,11 +87,13 @@ sudo systemctl reboot
 
 ```bash
 sudo bootc status
+cat /usr/lib/armada/version
+uname -r
 cat /sys/module/mcu_joystick/parameters/power_off_in_suspend
 nmcli -f IN-USE,SSID,FREQ,SIGNAL device wifi list --rescan yes
 ```
 
-MCU 参数应为 `Y`。实际测试休眠、唤醒、手柄，以及冷开机后的 5 GHz AP 发现和联网；CI 无法代替这些硬件测试。
+版本应为 `20261013.f1e136a-pr594-pr712.5af4dda`，`uname -r` 应为 `7.2.6`，MCU 参数应为 `Y`。实际测试休眠、唤醒、手柄、冷开机后的 5 GHz AP 发现和联网，以及 Steam Remote Play 是否仍有绿屏；CI 无法代替这些硬件测试。
 
 若还能进入系统但出现问题：
 
