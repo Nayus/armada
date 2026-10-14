@@ -1,11 +1,18 @@
 {
-  "official_main": "fd0ed0f1a285fbbccc5fa63969d4e176cb0ae4e6",
+  "official_main": "f1e136a24ceff4ba1817dfb71613842e764558ee",
+  "source_merge_commit": "36a7edfd92e9b30b0ea3433cc26ee1732c9fe4c9",
   "kernel": "7.2.6",
-  "official_patch_count": 196,
-  "total_patches": 200,
-  "total_hunks": 1003,
+  "official_patch_count": 198,
+  "total_patches": 202,
+  "total_hunks": 1005,
   "failed": 0,
+  "missing": 0,
   "fuzz": 0,
+  "offset_hunks": 319,
+  "patches_with_offsets": 105,
+  "series_sha256": "6f53e2776ee0bd77a159394a78b2631731adda2db1709a5e8c327e06aa124fb7",
+  "kernel_archive_sha256": "039aef84f2b0994aeda3f4fcfc3d02ec9d7a9bbb9020ea264c43f446c860f606",
+  "completed_at_utc": "2026-10-14T03:56:17.645425+00:00",
   "rebased_patches": [
     {
       "patch": "1021-wifi-ath12k-fix-single-pdev-frequency-ranges.patch",
@@ -29,12 +36,26 @@
       "fuzz": false
     },
     {
-      "patch": "pr712-0541.patch",
+      "patch": "0541-input-joystick-mcu-joystick-power-the-mcu-off-in-suspend.patch",
       "hunks": 3,
       "sha256": "8d87d14183c9083ac03e3fee13df4b11bd2f35989abc391eb1200888db4b7feb",
       "offset": false,
       "fuzz": false
     }
   ],
-  "note": "Full forward -F0 patch application, per-header dry-run verification, final ath12k files byte-equal to reviewed rebase. Not a compile or runtime test."
+  "new_official_iris_patches": [
+    {
+      "patch": "1030-media-iris-send-the-stream-POC-type.patch",
+      "sha256": "d0b36f96118d2d5150040a32fb3e56787e717125b1e02f9631d53e5cb14d8aea",
+      "offset": false,
+      "fuzz": false
+    },
+    {
+      "patch": "1031-media-iris-stop-AV1-tier-overwriting-HEVC-tier.patch",
+      "sha256": "b40eba45cdde010343bddd29b75ee21041f182bc79455a358cc1ab402e48676a",
+      "offset": false,
+      "fuzz": false
+    }
+  ],
+  "note": "Fresh kernel extraction, full forward -F0 patch application and per-header full-hunk dry-run verification. All custom and both new Iris patches applied without offsets/fuzz. Offsets elsewhere in official patches are recorded, not mistaken for fuzz. Not a compiler or runtime test; no external archive signature verification performed."
 }

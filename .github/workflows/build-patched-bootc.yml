@@ -6,12 +6,12 @@ on:
       base_image:
         description: "Pinned official Armada base image (repository@sha256:digest; no tag)"
         required: true
-        default: "ghcr.io/armada-os/armada@sha256:62d9302d2a3da1f994f350ea681c086ad4ca5be429ca96c4593af408f975129e"
+        default: "ghcr.io/armada-os/armada@sha256:7f58782ac02be17fc007123dc4ad5d1392f392cd470167dcb431289a9f3ae37e"
         type: string
       image_tag:
         description: "Tag in ghcr.io/nayus/armada-custom"
         required: true
-        default: "pr594-pr712-20261013-fd0ed0f"
+        default: "pr594-pr712-20261014-f1e136a"
         type: string
       kernel_artifact_run:
         description: "Optional prior run ID to reuse its kernel artifact; source inputs must match"
@@ -35,6 +35,8 @@ jobs:
     env:
       BASE_IMAGE: ${{ inputs.base_image }}
       IMAGE_TAG: ${{ inputs.image_tag }}
+      UPSTREAM_REVISION: f1e136a24ceff4ba1817dfb71613842e764558ee
+      UPSTREAM_VERSION: 20261013.f1e136a
 
     steps:
       - name: Check out official-based dual-patch source
@@ -48,20 +50,22 @@ jobs:
           set -euo pipefail
           [[ "$BASE_IMAGE" =~ ^ghcr\.io/armada-os/armada@sha256:[a-f0-9]{64}$ ]]
           [[ "$IMAGE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]
-          git merge-base --is-ancestor fd0ed0f1a285fbbccc5fa63969d4e176cb0ae4e6 HEAD
+          git merge-base --is-ancestor "$UPSTREAM_REVISION" HEAD
           test -s packages/kernel/patches/0541-input-joystick-mcu-joystick-power-the-mcu-off-in-suspend.patch
           grep -Fxq '0541-input-joystick-mcu-joystick-power-the-mcu-off-in-suspend.patch' packages/kernel/patches/series
           for patch in \
             1021-wifi-ath12k-fix-single-pdev-frequency-ranges.patch \
             1022-wifi-ath12k-split-WCN7860-scans-by-firmware-ranges.patch \
             1023-wifi-ath12k-protect-TX-during-associated-range-scans.patch \
-            1021-wifi-ath12k-convert-scan-timeout-to-wiphy-delayed-work.patch; do
+            1021-wifi-ath12k-convert-scan-timeout-to-wiphy-delayed-work.patch \
+            1030-media-iris-send-the-stream-POC-type.patch \
+            1031-media-iris-stop-AV1-tier-overwriting-HEVC-tier.patch; do
             test -s "packages/kernel/patches/${patch}"
             grep -Fxq "$patch" packages/kernel/patches/series
           done
           owner="${GITHUB_REPOSITORY_OWNER,,}"
           echo "OUTPUT_IMAGE=ghcr.io/${owner}/armada-custom:${IMAGE_TAG}" >> "$GITHUB_ENV"
-          echo "ARMADA_VERSION=20261013.fd0ed0f-pr594-pr712.${GITHUB_SHA:0:7}" >> "$GITHUB_ENV"
+          echo "ARMADA_VERSION=${UPSTREAM_VERSION}-pr594-pr712.${GITHUB_SHA:0:7}" >> "$GITHUB_ENV"
 
       - name: Install container tools
         run: |
@@ -96,8 +100,10 @@ jobs:
         run: |
           set -euo pipefail
           skopeo inspect --override-arch arm64 --config "docker://${BASE_IMAGE}" > "$RUNNER_TEMP/base-config.json"
-          jq -e '.architecture == "arm64" and .os == "linux" and
-            .config.Labels["org.opencontainers.image.version"] == "20261012.fd0ed0f" and
+          jq -e --arg version "$UPSTREAM_VERSION" --arg revision "$UPSTREAM_REVISION" '
+            .architecture == "arm64" and .os == "linux" and
+            .config.Labels["org.opencontainers.image.version"] == $version and
+            .config.Labels["org.opencontainers.image.revision"] == $revision and
             .config.Labels["containers.bootc"] == "1" and
             .config.Labels["ostree.bootable"] == "true" and
             (.config.Labels | has("ostree.commit") | not) and

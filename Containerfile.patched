@@ -1,4 +1,4 @@
-# Keep the installed userspace; replace only its kernel, modules, DTBs and initramfs.
+# Keep the selected official userspace; replace its kernel, modules, DTBs and initramfs.
 ARG BASE_IMAGE
 ARG KERNEL_IMAGE=localhost/armada-kernel:build
 
@@ -41,7 +41,9 @@ RUN --mount=type=bind,from=patched-kernel,source=/kernel,target=/patched-kernel,
       test -s "/usr/lib/modules/${kver}/initramfs.img"; \
       test -s "/usr/lib/modules/${kver}/dtb/qcom/sm8750-konkr-pf-elite.dtb"; \
       LC_ALL=C grep -a -q power_off_in_suspend "/usr/lib/modules/${kver}/vmlinuz"; \
-       test -s "$(modinfo -k "${kver}" -n ath12k)"; \
+      test -s "$(modinfo -k "${kver}" -n ath12k)"; \
+      test -s "$(modinfo -k "${kver}" -n qcom-iris)"; \
+      grep -Fxq "export STEAMLINK_V4L2_RESET_AFTER_LAST_BUF=1" /usr/libexec/armada/launch-steam; \
       printf "%s\n" "${ARMADA_VERSION}" > /usr/lib/armada/version; \
       printf "PR: https://github.com/armada-os/armada/pull/594\nPR: https://github.com/armada-os/armada/pull/712\nRevision: %s\n" \
         "${ARMADA_REVISION}" >> "/usr/lib/modules/${kver}/.armada-source"; \
