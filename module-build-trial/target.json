@@ -1,0 +1,10 @@
+{
+  "kernel_release": "7.2.6",
+  "architecture": "aarch64",
+  "board": "KONKR Pocket FIT Elite",
+  "bootc_digest": "sha256:7f58782ac02be17fc007123dc4ad5d1392f392cd470167dcb431289a9f3ae37e",
+  "kernel_sha256": "f487338fb7570dd86a49f23797d573f7209648e05ccb2866f054f7ad2b373bf2",
+  "btf_vmlinux_sha256": "81399c2085e836a86095ce269a0df28e7d1c1ff6cc362806276e2f28672a2bd9",
+  "initramfs_sha256": "fda1a94ece249dcc12d62c390a542b07eafb07007461eca0f1861a8269272cec",
+  "kernel_build_id": "314d2cb96328f03f6b84f3a8445947a2c3e577da"
+}

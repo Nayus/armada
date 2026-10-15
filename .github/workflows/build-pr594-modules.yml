@@ -1,0 +1,86 @@
+name: Build PR594-only module trial against verified official baseline
+on:
+  workflow_dispatch:
+  push:
+    branches: [pr594-module-trial-20261015]
+    paths:
+      - .github/workflows/build-pr594-modules.yml
+      - module-build-trial/build-native.py
+      - module-build-trial/fetch-donor.py
+      - module-build-trial/target.json
+permissions:
+  contents: read
+concurrency:
+  group: pr594-module-trial-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  native-trial:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 180
+    steps:
+      - name: Check out trial harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Check out exact untouched official recipe
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: armada-os/armada
+          ref: f1e136a24ceff4ba1817dfb71613842e764558ee
+          path: module-build-trial/official-source
+          persist-credentials: false
+      - name: Check out hash-allowlisted adapted PR594 patches
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: Nayus/armada
+          ref: 5af4dda683f41ecc70a3d08869a85ec62897ef53
+          path: module-build-trial/patch-source
+          persist-credentials: false
+      - name: Fetch pinned public official donors and upstream archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = aarch64
+          python3 module-build-trial/fetch-donor.py
+          mkdir module-build-trial/inputs
+          curl --fail --location --retry 3 \
+            https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.6.tar.xz \
+            -o module-build-trial/inputs/linux-7.2.6.tar.xz
+          printf '%s  %s\n' \
+            039aef84f2b0994aeda3f4fcfc3d02ec9d7a9bbb9020ea264c43f446c860f606 \
+            module-build-trial/inputs/linux-7.2.6.tar.xz | sha256sum -c -
+      - name: Recover immutable exact official native toolchain image
+        run: |
+          set -euo pipefail
+          docker pull ghcr.io/armada-os/armada/buildcache/kernel@sha256:800dc72b1709e141e06eeb1887410a30db0bc26f7a785e084f6d4ac21e81ed6c
+      - name: Reproduce untouched baseline then build only PR594 module pair
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --network=none \
+            --volume "$PWD/module-build-trial:/trial" \
+            --entrypoint python3 \
+            ghcr.io/armada-os/armada/buildcache/kernel@sha256:800dc72b1709e141e06eeb1887410a30db0bc26f7a785e084f6d4ac21e81ed6c \
+            /trial/build-native.py 2>&1 | tee module-build-trial/native-build.log
+      - name: Retain generated baseline for independent inspection
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          src=module-build-trial/build/work/linux-7.2.6
+          if test -f "$src/vmlinux"; then
+            tar -C "$src" -cf - vmlinux Module.symvers .config include/config include/generated scripts \
+              | zstd -T0 -3 -o module-build-trial/generated-baseline.tar.zst
+          fi
+      - name: Upload pair and evidence (never publish or install)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr594-module-trial-${{ github.run_id }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            module-build-trial/results/pr594-only-7.2.6-aarch64.tgz
+            module-build-trial/results/package-record.unpublished.json
+            module-build-trial/results/SHA256SUMS
+            module-build-trial/results/proof/
+            module-build-trial/native-build.log
+            module-build-trial/generated-baseline.tar.zst
